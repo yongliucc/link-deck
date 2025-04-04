@@ -32,26 +32,11 @@ A simple, elegant link management system that allows you to organize and access 
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/link-desk.git
+git clone hhttps://github.com/yongliucc/link-deck.git
 cd link-desk
 ```
 
 2. Configure the development environment:
-
-```bash
-# Make the configuration script executable
-chmod +x cursor-config.sh
-
-# Run the configuration script
-./cursor-config.sh
-```
-
-This script will:
-- Configure the Cursor terminal to use Node.js v22.14.0 from `/home/willow/.nvm/versions/node/v22.14.0/bin/node`
-- Set up the necessary environment variables
-- Create VSCode/Cursor settings for the integrated terminal
-
-3. Install pnpm globally (if not already installed):
 
 ```bash
 npm install -g pnpm
@@ -173,18 +158,6 @@ For debugging:
    - Debug Frontend
    - Full Stack: Backend + Frontend
 
-### Terminal Configuration
-
-The project includes a `.cursorrc` file that configures the terminal environment to use the correct Node.js version. To apply these settings in your current terminal session:
-
-```bash
-source .cursorrc
-```
-
-This will:
-- Set the PATH to use Node.js v22.14.0 from `/home/willow/.nvm/versions/node/v22.14.0/bin/node`
-- Configure the Go environment
-- Display the current Node.js and Go versions
 
 ### Using the Makefile
 
@@ -248,7 +221,7 @@ The application uses the following environment variables, which can be set in th
 ## Environment Requirements
 
 - Go version: go1.23.6 linux/amd64
-- Node.js: v22.14.0 (path: /home/willow/.nvm/versions/node/v22.14.0/bin/node)
+- Node.js: v22.14.0
 - React: v19.0.0
 - TailwindCSS: v3.4.1
 - GCC and development tools for CGO/SQLite support

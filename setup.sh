@@ -15,14 +15,6 @@ print_error() {
   echo -e "\033[1;31m==>\033[0m \033[1m$1\033[0m"
 }
 
-# Set up environment
-print_step "Setting up environment..."
-export PATH="/opt/apps/go1.23.6/bin:$PATH"
-export GOROOT="/opt/apps/go1.23.6"
-
-# Set Node.js path explicitly
-export PATH="/home/willow/.nvm/versions/node/v22.14.0/bin:$PATH"
-export NODE_PATH="/home/willow/.nvm/versions/node/v22.14.0/lib/node_modules"
 
 # Check versions
 print_step "Checking versions..."
