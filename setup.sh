@@ -40,8 +40,8 @@ cd ..
 print_success "Frontend built successfully!"
 
 # Set Go environment variables
-export GOPROXY=https://goproxy.io,direct
-export CGO_ENABLED=1  # Enable CGO for SQLite
+# export GOPROXY=https://goproxy.io,direct
+# export CGO_ENABLED=1  # Enable CGO for SQLite
 
 # Build backend
 print_step "Building Go server..."
