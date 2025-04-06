@@ -103,13 +103,6 @@ const Home: React.FC = () => {
       <footer className="bg-white border-t mt-auto py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
           <p>Link Desk &copy; {new Date().getFullYear()}</p>
-          {!isAuthenticated && (
-            <p className="mt-1">
-              <Link to="/login" className="text-blue-500 hover:underline">
-                Admin Login
-              </Link>
-            </p>
-          )}
         </div>
       </footer>
     </div>

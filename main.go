@@ -170,56 +170,34 @@ func main() {
 	// API routes
 	api := router.Group("/api")
 	{
-		// Public routes
+		// Public routes - only login is public now
 		api.POST("/login", handlers.Login)
-		api.GET("/links", handlers.GetAllLinkGroups)
 
-		// Protected routes
-		protected := api.Group("/admin")
-		protected.Use(func(c *gin.Context) {
-			log.Printf("Admin request: %s %s", c.Request.Method, c.Request.URL.Path)
-			// Special case for link-groups
-			if c.Request.URL.Path == "/api/admin/link-groups" && c.Request.Method == "GET" {
-				// Try normal auth first
-				authHeader := c.GetHeader("Authorization")
-				if authHeader == "" {
-					log.Printf("Missing Authorization header for link-groups. Will return empty array instead of 401.")
-					// Continue processing but mark as unauthorized
-					c.Set("auth_failed", true)
-					c.Next()
-					return
-				}
-			}
-			// Regular flow - apply auth middleware
-			middleware.AuthMiddleware()(c)
-		})
+		// All other routes are protected
+		protected := api.Group("")
+		protected.Use(middleware.AuthMiddleware())
 		{
-			// Special handler for link-groups that can handle unauthorized requests
-			protected.GET("/link-groups", func(c *gin.Context) {
-				// Check if auth failed but we're letting it through
-				if authFailed, exists := c.Get("auth_failed"); exists && authFailed.(bool) {
-					log.Printf("Returning empty array for unauthorized link-groups request")
-					c.JSON(http.StatusOK, []struct{}{})
-					return
-				}
+			// Links route - now protected
+			protected.GET("/links", handlers.GetAllLinkGroups)
 
-				// Normal flow - pass to the regular handler
-				handlers.GetAllLinkGroups(c)
-			})
+			// Admin routes
+			admin := protected.Group("/admin")
+			{
+				// User routes
+				admin.POST("/change-password", handlers.ChangePassword)
 
-			// User routes
-			protected.POST("/change-password", handlers.ChangePassword)
+				// Link group routes
+				admin.GET("/link-groups", handlers.GetAllLinkGroups)
+				admin.POST("/link-groups", handlers.CreateLinkGroup)
+				admin.PUT("/link-groups/:id", handlers.UpdateLinkGroup)
+				admin.DELETE("/link-groups/:id", handlers.DeleteLinkGroup)
 
-			// Link group routes (except GET which is handled above)
-			protected.POST("/link-groups", handlers.CreateLinkGroup)
-			protected.PUT("/link-groups/:id", handlers.UpdateLinkGroup)
-			protected.DELETE("/link-groups/:id", handlers.DeleteLinkGroup)
-
-			// Link routes
-			protected.GET("/link-groups/:id/links", handlers.GetLinksByGroupID)
-			protected.POST("/links", handlers.CreateLink)
-			protected.PUT("/links/:id", handlers.UpdateLink)
-			protected.DELETE("/links/:id", handlers.DeleteLink)
+				// Link routes
+				admin.GET("/link-groups/:id/links", handlers.GetLinksByGroupID)
+				admin.POST("/links", handlers.CreateLink)
+				admin.PUT("/links/:id", handlers.UpdateLink)
+				admin.DELETE("/links/:id", handlers.DeleteLink)
+			}
 		}
 	}
 

@@ -1,11 +1,11 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 
-import { AuthProvider, useAuth } from './contexts/AuthContext';
 import SessionExpiredNotification from './components/SessionExpiredNotification';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Admin from './pages/Admin';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import Admin from './pages/Admin';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -30,7 +30,14 @@ function AppRoutes() {
     <>
       <SessionExpiredNotification />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          } 
+        />
         <Route path="/login" element={<Login />} />
         <Route 
           path="/admin" 
