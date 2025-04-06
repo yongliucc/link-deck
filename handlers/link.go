@@ -27,9 +27,26 @@ type LinkRequest struct {
 	SortOrder int    `json:"sort_order"`
 }
 
+// ExportLinkGroup represents a link group for export/import without timestamps
+type ExportLinkGroup struct {
+	ID        int64        `json:"id"`
+	Name      string       `json:"name"`
+	SortOrder int          `json:"sort_order"`
+	Links     []ExportLink `json:"links,omitempty"`
+}
+
+// ExportLink represents a link for export/import without timestamps
+type ExportLink struct {
+	ID        int64  `json:"id"`
+	GroupID   int64  `json:"group_id"`
+	Name      string `json:"name"`
+	URL       string `json:"url"`
+	SortOrder int    `json:"sort_order"`
+}
+
 // ExportData represents the data structure for export/import operations
 type ExportData struct {
-	LinkGroups []models.LinkGroup `json:"link_groups"`
+	LinkGroups []ExportLinkGroup `json:"link_groups"`
 }
 
 // GetAllLinkGroups handles getting all link groups with their links
@@ -230,16 +247,33 @@ func ExportLinkGroups(c *gin.Context) {
 		return
 	}
 
-	// Ensure links is never null/nil for any group
-	for i := range groups {
-		if groups[i].Links == nil {
-			groups[i].Links = []models.Link{}
+	// Convert to export format (without timestamps)
+	exportGroups := make([]ExportLinkGroup, 0, len(groups))
+	for _, group := range groups {
+		exportGroup := ExportLinkGroup{
+			ID:        group.ID,
+			Name:      group.Name,
+			SortOrder: group.SortOrder,
+			Links:     make([]ExportLink, 0, len(group.Links)),
 		}
+
+		for _, link := range group.Links {
+			exportLink := ExportLink{
+				ID:        link.ID,
+				GroupID:   link.GroupID,
+				Name:      link.Name,
+				URL:       link.URL,
+				SortOrder: link.SortOrder,
+			}
+			exportGroup.Links = append(exportGroup.Links, exportLink)
+		}
+
+		exportGroups = append(exportGroups, exportGroup)
 	}
 
 	// Create export data structure
 	exportData := ExportData{
-		LinkGroups: groups,
+		LinkGroups: exportGroups,
 	}
 
 	// Set the response headers for file download
