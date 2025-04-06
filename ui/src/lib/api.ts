@@ -62,7 +62,6 @@ export interface Link {
   group_id: number;
   name: string;
   url: string;
-  icon?: string;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -77,7 +76,6 @@ export interface LinkRequest {
   group_id: number;
   name: string;
   url: string;
-  icon?: string;
   sort_order: number;
 }
 

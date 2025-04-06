@@ -1,7 +1,6 @@
 package models
 
 import (
-	"database/sql"
 	"time"
 )
 
@@ -21,7 +20,6 @@ type Link struct {
 	GroupID   int64     `json:"group_id"`
 	Name      string    `json:"name"`
 	URL       string    `json:"url"`
-	Icon      string    `json:"icon,omitempty"`
 	SortOrder int       `json:"sort_order"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -71,7 +69,7 @@ func GetAllLinkGroups() ([]LinkGroup, error) {
 // GetLinksByGroupID retrieves all links for a specific group
 func GetLinksByGroupID(groupID int64) ([]Link, error) {
 	rows, err := DB.Query(`
-		SELECT id, group_id, name, url, icon, sort_order, created_at, updated_at 
+		SELECT id, group_id, name, url, sort_order, created_at, updated_at 
 		FROM links 
 		WHERE group_id = ? 
 		ORDER BY sort_order ASC
@@ -86,23 +84,17 @@ func GetLinksByGroupID(groupID int64) ([]Link, error) {
 
 	for rows.Next() {
 		var link Link
-		var icon sql.NullString
 		err := rows.Scan(
 			&link.ID,
 			&link.GroupID,
 			&link.Name,
 			&link.URL,
-			&icon,
 			&link.SortOrder,
 			&link.CreatedAt,
 			&link.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
-		}
-
-		if icon.Valid {
-			link.Icon = icon.String
 		}
 
 		links = append(links, link)
@@ -142,11 +134,11 @@ func DeleteLinkGroup(id int64) error {
 }
 
 // CreateLink creates a new link
-func CreateLink(groupID int64, name, url, icon string, sortOrder int) (int64, error) {
+func CreateLink(groupID int64, name, url string, sortOrder int) (int64, error) {
 	result, err := DB.Exec(`
-		INSERT INTO links (group_id, name, url, icon, sort_order) 
-		VALUES (?, ?, ?, ?, ?)
-	`, groupID, name, url, icon, sortOrder)
+		INSERT INTO links (group_id, name, url, sort_order) 
+		VALUES (?, ?, ?, ?)
+	`, groupID, name, url, sortOrder)
 	if err != nil {
 		return 0, err
 	}
@@ -155,12 +147,12 @@ func CreateLink(groupID int64, name, url, icon string, sortOrder int) (int64, er
 }
 
 // UpdateLink updates an existing link
-func UpdateLink(id int64, groupID int64, name, url, icon string, sortOrder int) error {
+func UpdateLink(id int64, groupID int64, name, url string, sortOrder int) error {
 	_, err := DB.Exec(`
 		UPDATE links 
-		SET group_id = ?, name = ?, url = ?, icon = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP 
+		SET group_id = ?, name = ?, url = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP 
 		WHERE id = ?
-	`, groupID, name, url, icon, sortOrder, id)
+	`, groupID, name, url, sortOrder, id)
 
 	return err
 }

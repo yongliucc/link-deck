@@ -1,26 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Pencil, Trash2, Plus, LogOut, Save, X } from 'lucide-react';
+import { LogOut, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
+import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  getAdminLinkGroups,
-  createLinkGroup,
-  updateLinkGroup,
-  deleteLinkGroup,
-  createLink,
-  updateLink,
-  deleteLink,
-  LinkGroup,
-  Link as LinkType,
-  LinkRequest,
-  LinkGroupRequest
+    createLink,
+    createLinkGroup,
+    deleteLink,
+    deleteLinkGroup,
+    getAdminLinkGroups,
+    LinkGroup,
+    LinkRequest,
+    Link as LinkType,
+    updateLink,
+    updateLinkGroup
 } from '@/lib/api';
 
 const linkGroupSchema = z.object({
@@ -31,7 +30,6 @@ const linkGroupSchema = z.object({
 const linkSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   url: z.string().url('Must be a valid URL'),
-  icon: z.string().optional(),
   sort_order: z.coerce.number().int().nonnegative(),
 });
 
@@ -65,7 +63,6 @@ const Admin: React.FC = () => {
     defaultValues: {
       name: '',
       url: '',
-      icon: '',
       sort_order: 0,
     },
   });
@@ -169,7 +166,6 @@ const Admin: React.FC = () => {
     linkForm.reset({
       name: '',
       url: '',
-      icon: '',
       sort_order: 0,
     });
   };
@@ -203,7 +199,6 @@ const Admin: React.FC = () => {
     linkForm.reset({
       name: link.name,
       url: link.url,
-      icon: link.icon || '',
       sort_order: link.sort_order,
     });
   };
@@ -415,10 +410,6 @@ const Admin: React.FC = () => {
                                   )}
                                 </div>
                                 <div>
-                                  <label className="block text-sm font-medium mb-1">Icon (optional)</label>
-                                  <Input {...linkForm.register('icon')} />
-                                </div>
-                                <div>
                                   <label className="block text-sm font-medium mb-1">Sort Order</label>
                                   <Input type="number" {...linkForm.register('sort_order')} />
                                   {linkForm.formState.errors.sort_order && (
@@ -480,10 +471,6 @@ const Admin: React.FC = () => {
                                 {linkForm.formState.errors.url && (
                                   <p className="text-sm text-red-500 mt-1">{linkForm.formState.errors.url.message}</p>
                                 )}
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium mb-1">Icon (optional)</label>
-                                <Input {...linkForm.register('icon')} />
                               </div>
                               <div>
                                 <label className="block text-sm font-medium mb-1">Sort Order</label>

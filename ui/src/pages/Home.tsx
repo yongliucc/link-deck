@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { ExternalLink, Settings } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getLinkGroups, LinkGroup } from '@/lib/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { getLinkGroups, LinkGroup } from '@/lib/api';
 
 const Home: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -86,17 +86,6 @@ const Home: React.FC = () => {
                               className="flex items-center justify-between text-blue-600 hover:text-blue-800"
                             >
                               <div className="flex items-center">
-                                {link.icon && (
-                                  <img 
-                                    src={link.icon} 
-                                    alt="" 
-                                    className="w-5 h-5 mr-3"
-                                    onError={(e) => {
-                                      // Hide broken images
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                    }}
-                                  />
-                                )}
                                 <span>{link.name}</span>
                               </div>
                               <ExternalLink className="h-4 w-4 ml-2" />

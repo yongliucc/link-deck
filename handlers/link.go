@@ -22,7 +22,6 @@ type LinkRequest struct {
 	GroupID   int64  `json:"group_id" binding:"required"`
 	Name      string `json:"name" binding:"required"`
 	URL       string `json:"url" binding:"required"`
-	Icon      string `json:"icon"`
 	SortOrder int    `json:"sort_order"`
 }
 
@@ -31,10 +30,10 @@ func GetAllLinkGroups(c *gin.Context) {
 	// Check if this is an admin route
 	path := c.Request.URL.Path
 	isAdminRoute := strings.Contains(path, "/admin/")
-	
+
 	// Log the request details
 	log.Printf("GetAllLinkGroups: Processing request for %s (Admin Route: %v)", path, isAdminRoute)
-	
+
 	// If this is an admin route, check for authentication
 	if isAdminRoute {
 		// Check if user is authenticated (AuthMiddleware should have aborted if not authenticated)
@@ -161,7 +160,7 @@ func CreateLink(c *gin.Context) {
 		return
 	}
 
-	id, err := models.CreateLink(req.GroupID, req.Name, req.URL, req.Icon, req.SortOrder)
+	id, err := models.CreateLink(req.GroupID, req.Name, req.URL, req.SortOrder)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create link"})
 		return
@@ -184,7 +183,7 @@ func UpdateLink(c *gin.Context) {
 		return
 	}
 
-	err = models.UpdateLink(id, req.GroupID, req.Name, req.URL, req.Icon, req.SortOrder)
+	err = models.UpdateLink(id, req.GroupID, req.Name, req.URL, req.SortOrder)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Link not found"})
