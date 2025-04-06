@@ -66,3 +66,4 @@ cursor-config.sh
 .yarnrc.yaml
 .yarnrc.json
 .yarnrc.json
+.env.deploy
