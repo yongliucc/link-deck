@@ -13,15 +13,28 @@ var DB *sql.DB
 
 // InitDB initializes the database connection
 func InitDB() {
-	// Create data directory if it doesn't exist
-	dataDir := "./data"
-	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(dataDir, 0755); err != nil {
-			log.Fatalf("Failed to create data directory: %v", err)
+	// Get database path from environment variable or use default
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		// Create data directory if it doesn't exist
+		dataDir := "./data"
+		if _, err := os.Stat(dataDir); os.IsNotExist(err) {
+			if err := os.MkdirAll(dataDir, 0755); err != nil {
+				log.Fatalf("Failed to create data directory: %v", err)
+			}
+		}
+		dbPath = filepath.Join(dataDir, "linkdesk.db")
+	} else {
+		// Ensure directory exists for custom DB path
+		dbDir := filepath.Dir(dbPath)
+		if _, err := os.Stat(dbDir); os.IsNotExist(err) {
+			if err := os.MkdirAll(dbDir, 0755); err != nil {
+				log.Fatalf("Failed to create database directory: %v", err)
+			}
 		}
 	}
 
-	dbPath := filepath.Join(dataDir, "linkdesk.db")
+	log.Printf("Using database at: %s", dbPath)
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)

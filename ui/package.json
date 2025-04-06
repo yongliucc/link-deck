@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "start": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:backend": "../scripts/run_dev.sh backend",
+    "dev:all": "../scripts/run_dev.sh"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
