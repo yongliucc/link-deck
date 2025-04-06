@@ -197,6 +197,10 @@ func main() {
 				admin.POST("/links", handlers.CreateLink)
 				admin.PUT("/links/:id", handlers.UpdateLink)
 				admin.DELETE("/links/:id", handlers.DeleteLink)
+
+				// Import/Export routes
+				admin.GET("/export", handlers.ExportLinkGroups)
+				admin.POST("/import", handlers.ImportLinkGroups)
 			}
 		}
 	}

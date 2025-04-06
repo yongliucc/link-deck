@@ -132,4 +132,58 @@ export const deleteLink = async (id: number): Promise<void> => {
   await api.delete(`/admin/links/${id}`);
 };
 
+// Import/Export API
+export const exportData = async (): Promise<void> => {
+  try {
+    // Use the api instance which already has the auth headers configured
+    const response = await api.get('/admin/export', {
+      responseType: 'blob', // Important for handling file download
+    });
+    
+    // Create a blob URL and trigger download
+    const blob = new Blob([response.data], { 
+      type: response.headers['content-type'] 
+    });
+    const url = window.URL.createObjectURL(blob);
+    
+    // Create a temporary link and click it
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    
+    // Get filename from Content-Disposition header or use default
+    const contentDisposition = response.headers['content-disposition'];
+    const filename = contentDisposition 
+      ? contentDisposition.split('filename=')[1].replace(/"/g, '') 
+      : 'link-deck-export.json';
+    
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Clean up
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (error) {
+    console.error('Export failed:', error);
+    throw error;
+  }
+};
+
+export const importData = async (file: File): Promise<void> => {
+  if (!file) {
+    throw new Error('No file provided');
+  }
+  
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  // Need to set different content type for file upload
+  await api.post('/admin/import', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
 export default api; 

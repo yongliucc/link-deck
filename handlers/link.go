@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"database/sql"
+	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -23,6 +25,11 @@ type LinkRequest struct {
 	Name      string `json:"name" binding:"required"`
 	URL       string `json:"url" binding:"required"`
 	SortOrder int    `json:"sort_order"`
+}
+
+// ExportData represents the data structure for export/import operations
+type ExportData struct {
+	LinkGroups []models.LinkGroup `json:"link_groups"`
 }
 
 // GetAllLinkGroups handles getting all link groups with their links
@@ -211,4 +218,146 @@ func DeleteLink(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Link deleted successfully"})
+}
+
+// ExportLinkGroups handles exporting all link groups and their links to a JSON file
+func ExportLinkGroups(c *gin.Context) {
+	// Get all link groups with their links
+	groups, err := models.GetAllLinkGroups()
+	if err != nil {
+		log.Printf("ExportLinkGroups: Error retrieving link groups: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to export data"})
+		return
+	}
+
+	// Ensure links is never null/nil for any group
+	for i := range groups {
+		if groups[i].Links == nil {
+			groups[i].Links = []models.Link{}
+		}
+	}
+
+	// Create export data structure
+	exportData := ExportData{
+		LinkGroups: groups,
+	}
+
+	// Set the response headers for file download
+	c.Header("Content-Disposition", "attachment; filename=link-deck-export.json")
+	c.Header("Content-Type", "application/json")
+
+	// Write the export data as JSON to the response
+	c.JSON(http.StatusOK, exportData)
+}
+
+// ImportLinkGroups handles importing link groups and links from a JSON file
+func ImportLinkGroups(c *gin.Context) {
+	// Parse the multipart form
+	if err := c.Request.ParseMultipartForm(10 << 20); err != nil { // 10 MB max
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse form"})
+		return
+	}
+
+	// Get the file from the request
+	file, _, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No file provided"})
+		return
+	}
+	defer file.Close()
+
+	// Read the file content
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+		return
+	}
+
+	// Parse the JSON data
+	var importData ExportData
+	if err := json.Unmarshal(fileBytes, &importData); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		return
+	}
+
+	// Get existing groups to check for duplicates
+	existingGroups, err := models.GetAllLinkGroups()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve existing groups"})
+		return
+	}
+
+	// Create a map of existing groups by name for quick lookup
+	existingGroupsByName := make(map[string]models.LinkGroup)
+	for _, group := range existingGroups {
+		existingGroupsByName[group.Name] = group
+	}
+
+	// Process the import data - use a transaction for atomicity
+	tx, err := models.DB.Begin()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+		return
+	}
+
+	// Track the mapping between old and new IDs
+	groupIDMap := make(map[int64]int64)
+
+	// Import groups first
+	for _, group := range importData.LinkGroups {
+		var newGroupID int64
+
+		// Check if a group with this name already exists
+		if existingGroup, exists := existingGroupsByName[group.Name]; exists {
+			// Use the existing group ID
+			newGroupID = existingGroup.ID
+
+			// Update the existing group's sort order
+			err := models.UpdateLinkGroupTx(tx, newGroupID, group.Name, group.SortOrder)
+			if err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update existing group"})
+				return
+			}
+
+			// Delete existing links for this group to avoid duplicates
+			err = models.DeleteLinksByGroupIDTx(tx, newGroupID)
+			if err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove existing links"})
+				return
+			}
+		} else {
+			// Create a new group
+			newGroupID, err = models.CreateLinkGroupTx(tx, group.Name, group.SortOrder)
+			if err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to import groups"})
+				return
+			}
+		}
+
+		// Map old ID to new ID
+		groupIDMap[group.ID] = newGroupID
+
+		// Import links for this group
+		for _, link := range group.Links {
+			// Use the new group ID
+			_, err := models.CreateLinkTx(tx, newGroupID, link.Name, link.URL, link.SortOrder)
+			if err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to import links"})
+				return
+			}
+		}
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Data imported successfully"})
 }

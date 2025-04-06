@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { LogOut, Pencil, Plus, Save, Trash2, X } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { Download, LogOut, Pencil, Plus, Save, Trash2, Upload, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
@@ -14,7 +14,9 @@ import {
     createLinkGroup,
     deleteLink,
     deleteLinkGroup,
+    exportData,
     getAdminLinkGroups,
+    importData,
     LinkGroup,
     LinkRequest,
     Link as LinkType,
@@ -42,12 +44,18 @@ const Admin: React.FC = () => {
   const [linkGroups, setLinkGroups] = useState<LinkGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
+  
+  // File input ref for import
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // State for editing
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
   const [editingLinkId, setEditingLinkId] = useState<number | null>(null);
   const [addingGroupMode, setAddingGroupMode] = useState(false);
   const [addingLinkMode, setAddingLinkMode] = useState<number | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Forms
   const groupForm = useForm<LinkGroupFormValues>({
@@ -253,12 +261,87 @@ const Admin: React.FC = () => {
     }
   };
 
+  // Export/Import operations
+  const handleExport = async () => {
+    try {
+      setError(null);
+      setExporting(true);
+      await exportData();
+    } catch (err) {
+      console.error('Failed to export data:', err);
+      setError('Failed to export data. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImportClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    if (!file) return;
+    
+    try {
+      setImporting(true);
+      setError(null);
+      setImportStatus(null);
+      
+      await importData(file);
+      await loadLinkGroups();
+      
+      setImportStatus('Data imported successfully');
+      
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (err) {
+      console.error('Failed to import data:', err);
+      setError('Failed to import data. Please check your file format.');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Link Desk Admin</h1>
           <div className="flex items-center space-x-4">
+            <Button 
+              onClick={handleExport} 
+              className="flex items-center gap-1"
+              disabled={exporting}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              {exporting ? 'Exporting...' : 'Export'}
+            </Button>
+            
+            <Button 
+              onClick={handleImportClick} 
+              className="flex items-center gap-1"
+              disabled={importing}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {importing ? 'Importing...' : 'Import'}
+            </Button>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleImportFile}
+              accept="application/json"
+              className="hidden"
+            />
+            
             <span className="text-sm text-gray-600">Logged in as {username}</span>
             <Button variant="outline" size="sm" onClick={handleLogout}>
               <LogOut className="h-4 w-4 mr-2" />
@@ -269,15 +352,15 @@ const Admin: React.FC = () => {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {importStatus && (
+          <div className="mb-4 p-4 bg-green-100 text-green-800 rounded-md">
+            {importStatus}
+          </div>
+        )}
+        
         {error && (
-          <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          <div className="mb-4 p-4 bg-red-100 text-red-800 rounded-md">
             {error}
-            <button 
-              className="float-right font-bold"
-              onClick={() => setError(null)}
-            >
-              &times;
-            </button>
           </div>
         )}
 

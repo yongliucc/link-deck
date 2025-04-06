@@ -1,6 +1,7 @@
 package models
 
 import (
+	"database/sql"
 	"time"
 )
 
@@ -160,5 +161,48 @@ func UpdateLink(id int64, groupID int64, name, url string, sortOrder int) error 
 // DeleteLink deletes a link
 func DeleteLink(id int64) error {
 	_, err := DB.Exec("DELETE FROM links WHERE id = ?", id)
+	return err
+}
+
+// CreateLinkGroupTx creates a new link group within a transaction
+func CreateLinkGroupTx(tx *sql.Tx, name string, sortOrder int) (int64, error) {
+	result, err := tx.Exec(`
+		INSERT INTO link_groups (name, sort_order) 
+		VALUES (?, ?)
+	`, name, sortOrder)
+	if err != nil {
+		return 0, err
+	}
+
+	return result.LastInsertId()
+}
+
+// CreateLinkTx creates a new link within a transaction
+func CreateLinkTx(tx *sql.Tx, groupID int64, name, url string, sortOrder int) (int64, error) {
+	result, err := tx.Exec(`
+		INSERT INTO links (group_id, name, url, sort_order) 
+		VALUES (?, ?, ?, ?)
+	`, groupID, name, url, sortOrder)
+	if err != nil {
+		return 0, err
+	}
+
+	return result.LastInsertId()
+}
+
+// UpdateLinkGroupTx updates an existing link group within a transaction
+func UpdateLinkGroupTx(tx *sql.Tx, id int64, name string, sortOrder int) error {
+	_, err := tx.Exec(`
+		UPDATE link_groups 
+		SET name = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP 
+		WHERE id = ?
+	`, name, sortOrder, id)
+
+	return err
+}
+
+// DeleteLinksByGroupIDTx deletes all links for a specific group within a transaction
+func DeleteLinksByGroupIDTx(tx *sql.Tx, groupID int64) error {
+	_, err := tx.Exec("DELETE FROM links WHERE group_id = ?", groupID)
 	return err
 }
