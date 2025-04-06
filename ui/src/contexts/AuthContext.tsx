@@ -7,6 +7,8 @@ interface AuthContextType {
   login: (data: LoginRequest) => Promise<void>;
   logout: () => void;
   loading: boolean;
+  isSessionExpired: boolean;
+  clearExpiredSession: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -15,6 +17,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isSessionExpired, setIsSessionExpired] = useState<boolean>(false);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -29,6 +32,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
+  useEffect(() => {
+    // Listen for storage events (for multi-tab coordination)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'token' && e.newValue === null) {
+        // Token was removed in another tab
+        setIsAuthenticated(false);
+        setUsername(null);
+        setIsSessionExpired(true);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
   const login = async (data: LoginRequest) => {
     try {
       setLoading(true);
@@ -39,6 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setIsAuthenticated(true);
       setUsername(response.username);
+      setIsSessionExpired(false);
     } finally {
       setLoading(false);
     }
@@ -51,8 +70,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUsername(null);
   };
 
+  const clearExpiredSession = () => {
+    setIsSessionExpired(false);
+  };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, username, login, logout, loading }}>
+    <AuthContext.Provider value={{ 
+      isAuthenticated, 
+      username, 
+      login, 
+      logout, 
+      loading,
+      isSessionExpired,
+      clearExpiredSession 
+    }}>
       {children}
     </AuthContext.Provider>
   );

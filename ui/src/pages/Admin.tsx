@@ -77,8 +77,15 @@ const Admin: React.FC = () => {
       setError(null);
       const data = await getAdminLinkGroups();
       setLinkGroups(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load link groups:', err);
+      // Handle 401 errors specifically (should be handled by the interceptor, but as a fallback)
+      if (err.response && err.response.status === 401) {
+        console.log('Unauthorized access detected in Admin page, redirecting to login');
+        logout();
+        navigate('/login');
+        return;
+      }
       setError('Failed to load link groups');
     } finally {
       setLoading(false);
@@ -102,8 +109,13 @@ const Admin: React.FC = () => {
       await loadLinkGroups();
       setAddingGroupMode(false);
       groupForm.reset();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to add group:', err);
+      if (err.response && err.response.status === 401) {
+        logout();
+        navigate('/login');
+        return;
+      }
       setError('Failed to add group');
     }
   };
@@ -123,8 +135,13 @@ const Admin: React.FC = () => {
       await updateLinkGroup(editingGroupId, data);
       await loadLinkGroups();
       setEditingGroupId(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update group:', err);
+      if (err.response && err.response.status === 401) {
+        logout();
+        navigate('/login');
+        return;
+      }
       setError('Failed to update group');
     }
   };
@@ -135,8 +152,13 @@ const Admin: React.FC = () => {
     try {
       await deleteLinkGroup(id);
       await loadLinkGroups();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete group:', err);
+      if (err.response && err.response.status === 401) {
+        logout();
+        navigate('/login');
+        return;
+      }
       setError('Failed to delete group');
     }
   };
@@ -165,8 +187,13 @@ const Admin: React.FC = () => {
       await loadLinkGroups();
       setAddingLinkMode(null);
       linkForm.reset();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to add link:', err);
+      if (err.response && err.response.status === 401) {
+        logout();
+        navigate('/login');
+        return;
+      }
       setError('Failed to add link');
     }
   };
@@ -203,8 +230,13 @@ const Admin: React.FC = () => {
       await updateLink(editingLinkId, linkData);
       await loadLinkGroups();
       setEditingLinkId(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to update link:', err);
+      if (err.response && err.response.status === 401) {
+        logout();
+        navigate('/login');
+        return;
+      }
       setError('Failed to update link');
     }
   };
@@ -215,8 +247,13 @@ const Admin: React.FC = () => {
     try {
       await deleteLink(id);
       await loadLinkGroups();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to delete link:', err);
+      if (err.response && err.response.status === 401) {
+        logout();
+        navigate('/login');
+        return;
+      }
       setError('Failed to delete link');
     }
   };

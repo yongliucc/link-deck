@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"log"
 )
 
 // JWTClaims represents the claims in the JWT
@@ -49,6 +50,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Get the Authorization header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
+			log.Printf("AuthMiddleware: Authorization header is missing for %s %s", c.Request.Method, c.Request.URL.Path)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
 			c.Abort()
 			return
@@ -57,6 +59,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Check if the Authorization header has the correct format
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
+			log.Printf("AuthMiddleware: Invalid Authorization header format: %s for %s %s", authHeader, c.Request.Method, c.Request.URL.Path)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header format must be Bearer {token}"})
 			c.Abort()
 			return
@@ -64,6 +67,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// Get the token
 		tokenString := parts[1]
+		log.Printf("AuthMiddleware: Received token: %s... for %s %s", tokenString[:10]+"...", c.Request.Method, c.Request.URL.Path)
 
 		// Parse the token
 		token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
@@ -76,6 +80,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		})
 
 		if err != nil {
+			log.Printf("AuthMiddleware: Invalid token error: %v for %s %s", err, c.Request.Method, c.Request.URL.Path)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token: " + err.Error()})
 			c.Abort()
 			return
@@ -83,6 +88,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// Check if the token is valid
 		if !token.Valid {
+			log.Printf("AuthMiddleware: Token validation failed for %s %s", c.Request.Method, c.Request.URL.Path)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return
@@ -91,6 +97,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Get the claims
 		claims, ok := token.Claims.(*JWTClaims)
 		if !ok {
+			log.Printf("AuthMiddleware: Invalid token claims for %s %s", c.Request.Method, c.Request.URL.Path)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token claims"})
 			c.Abort()
 			return
@@ -99,6 +106,8 @@ func AuthMiddleware() gin.HandlerFunc {
 		// Set the user ID and username in the context
 		c.Set("userID", claims.UserID)
 		c.Set("username", claims.Username)
+		log.Printf("AuthMiddleware: Authentication successful for user %s (ID: %d) for %s %s", 
+			claims.Username, claims.UserID, c.Request.Method, c.Request.URL.Path)
 
 		c.Next()
 	}

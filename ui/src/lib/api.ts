@@ -20,6 +20,23 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Add response interceptor to handle auth errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Handle 401 Unauthorized errors
+    if (error.response && error.response.status === 401) {
+      console.log('Unauthorized access detected, redirecting to login page');
+      // Clear any stored auth data
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      // Redirect to login page
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Types
 export interface LoginRequest {
   username: string;

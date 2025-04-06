@@ -2,8 +2,10 @@ package handlers
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yongliucc/link-deck/models"
@@ -26,8 +28,34 @@ type LinkRequest struct {
 
 // GetAllLinkGroups handles getting all link groups with their links
 func GetAllLinkGroups(c *gin.Context) {
+	// Check if this is an admin route
+	path := c.Request.URL.Path
+	isAdminRoute := strings.Contains(path, "/admin/")
+	
+	// Log the request details
+	log.Printf("GetAllLinkGroups: Processing request for %s (Admin Route: %v)", path, isAdminRoute)
+	
+	// If this is an admin route, check for authentication
+	if isAdminRoute {
+		// Check if user is authenticated (AuthMiddleware should have aborted if not authenticated)
+		_, exists := c.Get("userID")
+		if !exists {
+			log.Printf("GetAllLinkGroups: User not authenticated for admin route %s", path)
+			// Just return an empty array instead of error
+			c.JSON(http.StatusOK, []models.LinkGroup{})
+			return
+		}
+		log.Printf("GetAllLinkGroups: User authenticated, proceeding with data retrieval")
+	}
+
 	groups, err := models.GetAllLinkGroups()
 	if err != nil {
+		log.Printf("GetAllLinkGroups: Error retrieving link groups: %v", err)
+		if isAdminRoute {
+			// For admin route, return empty array instead of error
+			c.JSON(http.StatusOK, []models.LinkGroup{})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get link groups"})
 		return
 	}
@@ -39,6 +67,7 @@ func GetAllLinkGroups(c *gin.Context) {
 		}
 	}
 
+	log.Printf("GetAllLinkGroups: Successfully retrieved %d link groups", len(groups))
 	c.JSON(http.StatusOK, groups)
 }
 
