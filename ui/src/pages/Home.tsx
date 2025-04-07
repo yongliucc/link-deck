@@ -2,7 +2,6 @@ import { Settings } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { getLinkGroups, LinkGroup } from '@/lib/api';
 
@@ -32,20 +31,6 @@ const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Link Desk</h1>
-          {isAuthenticated && (
-            <Link to="/admin">
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                Admin
-              </Button>
-            </Link>
-          )}
-        </div>
-      </header>
-
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
           <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
@@ -92,11 +77,13 @@ const Home: React.FC = () => {
         )}
       </main>
 
-      <footer className="bg-white border-t mt-auto py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 text-sm">
-          <p>Link Desk &copy; {new Date().getFullYear()}</p>
-        </div>
-      </footer>
+      {isAuthenticated && (
+        <Link to="/admin">
+          <div className="fixed bottom-6 right-6 p-3 bg-slate-700 hover:bg-slate-800 text-white rounded-full shadow-lg transition-all duration-200">
+            <Settings className="h-6 w-6" />
+          </div>
+        </Link>
+      )}
     </div>
   );
 };
