@@ -221,13 +221,13 @@ func main() {
 		})
 	}
 
-	// Get port from config, environment variable, or use default
-	port := ""
-	if config.Server.Port > 0 {
-		port = fmt.Sprintf("%d", config.Server.Port)
-	} else {
-		port = os.Getenv("PORT")
-		if port == "" {
+	// Get port from environment variable, config, or use default
+	port := os.Getenv("PORT")
+	if port == "" {
+		// If no environment variable, use config port
+		if config.Server.Port > 0 {
+			port = fmt.Sprintf("%d", config.Server.Port)
+		} else {
 			port = "8080"
 		}
 	}
