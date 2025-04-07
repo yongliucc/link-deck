@@ -10,16 +10,16 @@ mkdir -p $UI_ROOT
 
 echo "Starting deployment process..."
 
-# Step 1: Build the application
-echo "Building application..."
-bash build.sh
-
-
 # stop any running instance of the application
 if pgrep -f $BINARY_NAME > /dev/null; then
   echo "Stopping existing instance of $BINARY_NAME..."
   pkill -f $BINARY_NAME
 fi
+
+# Step 1: Build the application
+echo "Building application..."
+bash build.sh
+
 # Step 2: Move the binary to the application root
 echo "Moving binary to $APP_ROOT..."
 LOCAL_BINARY_PATH="./bin/${BINARY_NAME}"
