@@ -23,7 +23,7 @@ func InitDB() {
 				log.Fatalf("Failed to create data directory: %v", err)
 			}
 		}
-		dbPath = filepath.Join(dataDir, "linkdesk.db")
+		dbPath = filepath.Join(dataDir, "linkdeck.db")
 	} else {
 		// Ensure directory exists for custom DB path
 		dbDir := filepath.Dir(dbPath)

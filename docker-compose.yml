@@ -15,7 +15,7 @@ services:
       - PORT=8080
       - JWT_SECRET=${JWT_SECRET:-change_this_to_a_secure_secret_in_production}
       - JWT_EXPIRATION=${JWT_EXPIRATION:-24h}
-      - DB_PATH=/app/data/linkdesk.db
+      - DB_PATH=/app/data/linkdeck.db
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:8080}
