@@ -1,5 +1,22 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Download, Home, LogOut, Pencil, Plus, Save, Settings, Trash2, Upload, X } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Download, GripVertical, Home, LogOut, Pencil, Plus, Save, Settings, Trash2, Upload, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
@@ -8,6 +25,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '@/contexts/AuthContext';
 import {
     changePassword,
@@ -51,6 +69,87 @@ type LinkGroupFormValues = z.infer<typeof linkGroupSchema>;
 type LinkFormValues = z.infer<typeof linkSchema>;
 
 type AdminView = 'linkGroups' | 'links' | 'systemConfig';
+
+// Sortable item components
+const SortableGroupItem = ({ group, onEdit, onDelete }: { 
+  group: LinkGroup; 
+  onEdit: (group: LinkGroup) => void;
+  onDelete: (id: number) => void;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: group.id.toString(),
+  });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  
+  return (
+    <TableRow ref={setNodeRef} style={style} className="group hover:bg-gray-50">
+      <TableCell className="w-10">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-2">
+          <GripVertical className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
+        </div>
+      </TableCell>
+      <TableCell className="font-medium">{group.name}</TableCell>
+      <TableCell>{group.sort_order}</TableCell>
+      <TableCell className="text-center">{group.links?.length || 0}</TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end space-x-2">
+          <Button variant="ghost" size="sm" onClick={() => onEdit(group)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => onDelete(group.id)}>
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+};
+
+const SortableLinkItem = ({ link, onEdit, onDelete }: {
+  link: LinkType;
+  onEdit: (link: LinkType) => void;
+  onDelete: (id: number) => void;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: link.id.toString(),
+  });
+  
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  
+  return (
+    <TableRow ref={setNodeRef} style={style} className="group hover:bg-gray-50">
+      <TableCell className="w-10">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-2">
+          <GripVertical className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
+        </div>
+      </TableCell>
+      <TableCell className="font-medium">{link.name}</TableCell>
+      <TableCell className="max-w-xs truncate">
+        <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+          {link.url}
+        </a>
+      </TableCell>
+      <TableCell>{link.sort_order}</TableCell>
+      <TableCell className="text-right">
+        <div className="flex justify-end space-x-2">
+          <Button variant="ghost" size="sm" onClick={() => onEdit(link)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => onDelete(link.id)}>
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+};
 
 const Admin: React.FC = () => {
   const { logout, username } = useAuth();
@@ -99,6 +198,14 @@ const Admin: React.FC = () => {
       confirmPassword: '',
     },
   });
+
+  // Setup sensors for drag-n-drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Load link groups
   const loadLinkGroups = async () => {
@@ -360,6 +467,92 @@ const Admin: React.FC = () => {
     }
   };
 
+  // Handle group reordering
+  const handleGroupDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) {
+      return;
+    }
+    
+    setLinkGroups((groups) => {
+      const oldIndex = groups.findIndex(g => g.id.toString() === active.id);
+      const newIndex = groups.findIndex(g => g.id.toString() === over.id);
+      
+      const reorderedGroups = arrayMove(groups, oldIndex, newIndex);
+      
+      // Update sort orders
+      const updatedGroups = reorderedGroups.map((group, index) => ({
+        ...group,
+        sort_order: index,
+      }));
+      
+      // Save new order to backend
+      updatedGroups.forEach(async (group) => {
+        try {
+          await updateLinkGroup(group.id, {
+            name: group.name,
+            sort_order: group.sort_order,
+          });
+        } catch (err) {
+          console.error('Failed to update group order:', err);
+        }
+      });
+      
+      return updatedGroups;
+    });
+  };
+
+  // Handle link reordering within a group
+  const handleLinkDragEnd = async (event: DragEndEvent, groupId: number) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) {
+      return;
+    }
+    
+    setLinkGroups((groups) => {
+      const groupIndex = groups.findIndex(g => g.id === groupId);
+      if (groupIndex === -1) return groups;
+      
+      const group = groups[groupIndex];
+      const links = [...group.links];
+      
+      const oldIndex = links.findIndex(link => link.id.toString() === active.id);
+      const newIndex = links.findIndex(link => link.id.toString() === over.id);
+      
+      const reorderedLinks = arrayMove(links, oldIndex, newIndex);
+      
+      // Update sort orders
+      const updatedLinks = reorderedLinks.map((link, index) => ({
+        ...link,
+        sort_order: index,
+      }));
+      
+      // Save new order to backend
+      updatedLinks.forEach(async (link) => {
+        try {
+          await updateLink(link.id, {
+            name: link.name,
+            url: link.url,
+            sort_order: link.sort_order,
+            group_id: link.group_id,
+          });
+        } catch (err) {
+          console.error('Failed to update link order:', err);
+        }
+      });
+      
+      const updatedGroups = [...groups];
+      updatedGroups[groupIndex] = {
+        ...group,
+        links: updatedLinks,
+      };
+      
+      return updatedGroups;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex">
       {/* Sidebar */}
@@ -510,64 +703,85 @@ const Admin: React.FC = () => {
                     </Card>
                   )}
 
-                  {/* Link Groups */}
+                  {/* Group Edit Form */}
+                  {editingGroupId !== null && (
+                    <Card className="mb-6">
+                      <CardHeader>
+                        <CardTitle>Edit Group</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={groupForm.handleSubmit(handleUpdateGroup)} className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-1">Name</label>
+                              <Input {...groupForm.register('name')} />
+                              {groupForm.formState.errors.name && (
+                                <p className="text-sm text-red-500 mt-1">{groupForm.formState.errors.name.message}</p>
+                              )}
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-1">Sort Order</label>
+                              <Input type="number" {...groupForm.register('sort_order')} />
+                              {groupForm.formState.errors.sort_order && (
+                                <p className="text-sm text-red-500 mt-1">{groupForm.formState.errors.sort_order.message}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex justify-end space-x-2">
+                            <Button type="button" variant="outline" onClick={() => setEditingGroupId(null)}>
+                              <X className="h-4 w-4 mr-2" />
+                              Cancel
+                            </Button>
+                            <Button type="submit">
+                              <Save className="h-4 w-4 mr-2" />
+                              Save
+                            </Button>
+                          </div>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Link Groups Table */}
                   {linkGroups.length === 0 && !addingGroupMode ? (
                     <div className="text-center py-8 text-gray-500">No link groups found. Add your first group!</div>
                   ) : (
-                    linkGroups.map(group => (
-                      <Card key={group.id} className="overflow-hidden">
-                        {/* Group Header */}
-                        {editingGroupId === group.id ? (
-                          <CardHeader className="bg-gray-50">
-                            <form onSubmit={groupForm.handleSubmit(handleUpdateGroup)} className="space-y-4">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                  <label className="block text-sm font-medium mb-1">Name</label>
-                                  <Input {...groupForm.register('name')} />
-                                  {groupForm.formState.errors.name && (
-                                    <p className="text-sm text-red-500 mt-1">{groupForm.formState.errors.name.message}</p>
-                                  )}
-                                </div>
-                                <div>
-                                  <label className="block text-sm font-medium mb-1">Sort Order</label>
-                                  <Input type="number" {...groupForm.register('sort_order')} />
-                                  {groupForm.formState.errors.sort_order && (
-                                    <p className="text-sm text-red-500 mt-1">{groupForm.formState.errors.sort_order.message}</p>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex justify-end space-x-2">
-                                <Button type="button" variant="outline" onClick={() => setEditingGroupId(null)}>
-                                  <X className="h-4 w-4 mr-2" />
-                                  Cancel
-                                </Button>
-                                <Button type="submit">
-                                  <Save className="h-4 w-4 mr-2" />
-                                  Save
-                                </Button>
-                              </div>
-                            </form>
-                          </CardHeader>
-                        ) : (
-                          <CardHeader className="bg-gray-50 flex flex-row items-center justify-between">
-                            <div>
-                              <CardTitle className="flex items-center">
-                                <span>{group.name}</span>
-                                <span className="ml-2 text-sm text-gray-500">({group.sort_order})</span>
-                              </CardTitle>
-                            </div>
-                            <div className="flex space-x-2">
-                              <Button variant="ghost" size="sm" onClick={() => handleEditGroup(group)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleDeleteGroup(group.id)}>
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </div>
-                          </CardHeader>
-                        )}
-                      </Card>
-                    ))
+                    <Card>
+                      <CardContent className="p-0">
+                        <DndContext
+                          sensors={sensors}
+                          collisionDetection={closestCenter}
+                          onDragEnd={handleGroupDragEnd}
+                        >
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-10"></TableHead>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Sort Order</TableHead>
+                                <TableHead className="text-center">Links</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              <SortableContext
+                                items={linkGroups.map(g => g.id.toString())}
+                                strategy={verticalListSortingStrategy}
+                              >
+                                {linkGroups.map(group => (
+                                  <SortableGroupItem
+                                    key={group.id}
+                                    group={group}
+                                    onEdit={handleEditGroup}
+                                    onDelete={handleDeleteGroup}
+                                  />
+                                ))}
+                              </SortableContext>
+                            </TableBody>
+                          </Table>
+                        </DndContext>
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               )}
@@ -584,128 +798,144 @@ const Admin: React.FC = () => {
               {loading ? (
                 <div className="text-center py-8">Loading...</div>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-8">
+                  {/* Link Edit Form */}
+                  {editingLinkId !== null && (
+                    <Card className="mb-6">
+                      <CardHeader>
+                        <CardTitle>Edit Link</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <form onSubmit={linkForm.handleSubmit(handleUpdateLink)} className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-1">Name</label>
+                              <Input {...linkForm.register('name')} />
+                              {linkForm.formState.errors.name && (
+                                <p className="text-sm text-red-500 mt-1">{linkForm.formState.errors.name.message}</p>
+                              )}
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-1">URL</label>
+                              <Input {...linkForm.register('url')} />
+                              {linkForm.formState.errors.url && (
+                                <p className="text-sm text-red-500 mt-1">{linkForm.formState.errors.url.message}</p>
+                              )}
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-1">Sort Order</label>
+                              <Input type="number" {...linkForm.register('sort_order')} />
+                              {linkForm.formState.errors.sort_order && (
+                                <p className="text-sm text-red-500 mt-1">{linkForm.formState.errors.sort_order.message}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex justify-end space-x-2">
+                            <Button type="button" variant="outline" onClick={() => setEditingLinkId(null)}>
+                              <X className="h-4 w-4 mr-2" />
+                              Cancel
+                            </Button>
+                            <Button type="submit">
+                              <Save className="h-4 w-4 mr-2" />
+                              Save
+                            </Button>
+                          </div>
+                        </form>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   {linkGroups.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">No link groups found. Create a group first!</div>
                   ) : (
                     linkGroups.map(group => (
                       <Card key={group.id} className="overflow-hidden">
-                        <CardHeader className="bg-gray-50">
+                        <CardHeader className="bg-gray-50 flex flex-row items-center justify-between">
                           <CardTitle>{group.name}</CardTitle>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleAddLink(group.id)}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Link
+                          </Button>
                         </CardHeader>
                         <CardContent className="p-0">
-                          <div className="divide-y">
-                            {(group.links || []).map(link => (
-                              <div key={link.id} className="p-4">
-                                {editingLinkId === link.id ? (
-                                  <form onSubmit={linkForm.handleSubmit(handleUpdateLink)} className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                      <div>
-                                        <label className="block text-sm font-medium mb-1">Name</label>
-                                        <Input {...linkForm.register('name')} />
-                                        {linkForm.formState.errors.name && (
-                                          <p className="text-sm text-red-500 mt-1">{linkForm.formState.errors.name.message}</p>
-                                        )}
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium mb-1">URL</label>
-                                        <Input {...linkForm.register('url')} />
-                                        {linkForm.formState.errors.url && (
-                                          <p className="text-sm text-red-500 mt-1">{linkForm.formState.errors.url.message}</p>
-                                        )}
-                                      </div>
-                                      <div>
-                                        <label className="block text-sm font-medium mb-1">Sort Order</label>
-                                        <Input type="number" {...linkForm.register('sort_order')} />
-                                        {linkForm.formState.errors.sort_order && (
-                                          <p className="text-sm text-red-500 mt-1">{linkForm.formState.errors.sort_order.message}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex justify-end space-x-2">
-                                      <Button type="button" variant="outline" onClick={() => setEditingLinkId(null)}>
-                                        <X className="h-4 w-4 mr-2" />
-                                        Cancel
-                                      </Button>
-                                      <Button type="submit">
-                                        <Save className="h-4 w-4 mr-2" />
-                                        Save
-                                      </Button>
-                                    </div>
-                                  </form>
-                                ) : (
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <h3 className="font-medium">{link.name}</h3>
-                                      <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline">
-                                        {link.url}
-                                      </a>
-                                      <div className="text-xs text-gray-500 mt-1">
-                                        Sort Order: {link.sort_order}
-                                      </div>
-                                    </div>
-                                    <div className="flex space-x-2">
-                                      <Button variant="ghost" size="sm" onClick={() => handleEditLink(link)}>
-                                        <Pencil className="h-4 w-4" />
-                                      </Button>
-                                      <Button variant="ghost" size="sm" onClick={() => handleDeleteLink(link.id)}>
-                                        <Trash2 className="h-4 w-4 text-red-500" />
-                                      </Button>
-                                    </div>
+                          {/* Add Link Form */}
+                          {addingLinkMode === group.id && (
+                            <div className="p-4 bg-gray-50 border-b">
+                              <form onSubmit={linkForm.handleSubmit(handleCreateLink)} className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-sm font-medium mb-1">Name</label>
+                                    <Input {...linkForm.register('name')} />
+                                    {linkForm.formState.errors.name && (
+                                      <p className="text-sm text-red-500 mt-1">{linkForm.formState.errors.name.message}</p>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                            ))}
+                                  <div>
+                                    <label className="block text-sm font-medium mb-1">URL</label>
+                                    <Input {...linkForm.register('url')} />
+                                    {linkForm.formState.errors.url && (
+                                      <p className="text-sm text-red-500 mt-1">{linkForm.formState.errors.url.message}</p>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium mb-1">Sort Order</label>
+                                    <Input type="number" {...linkForm.register('sort_order')} />
+                                    {linkForm.formState.errors.sort_order && (
+                                      <p className="text-sm text-red-500 mt-1">{linkForm.formState.errors.sort_order.message}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex justify-end space-x-2">
+                                  <Button type="button" variant="outline" onClick={() => setAddingLinkMode(null)}>
+                                    Cancel
+                                  </Button>
+                                  <Button type="submit">Save Link</Button>
+                                </div>
+                              </form>
+                            </div>
+                          )}
 
-                            {/* Add Link Button */}
-                            {addingLinkMode === group.id ? (
-                              <div className="p-4 bg-gray-50">
-                                <h3 className="font-medium mb-4">Add New Link</h3>
-                                <form onSubmit={linkForm.handleSubmit(handleCreateLink)} className="space-y-4">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                      <label className="block text-sm font-medium mb-1">Name</label>
-                                      <Input {...linkForm.register('name')} />
-                                      {linkForm.formState.errors.name && (
-                                        <p className="text-sm text-red-500 mt-1">{linkForm.formState.errors.name.message}</p>
-                                      )}
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium mb-1">URL</label>
-                                      <Input {...linkForm.register('url')} />
-                                      {linkForm.formState.errors.url && (
-                                        <p className="text-sm text-red-500 mt-1">{linkForm.formState.errors.url.message}</p>
-                                      )}
-                                    </div>
-                                    <div>
-                                      <label className="block text-sm font-medium mb-1">Sort Order</label>
-                                      <Input type="number" {...linkForm.register('sort_order')} />
-                                      {linkForm.formState.errors.sort_order && (
-                                        <p className="text-sm text-red-500 mt-1">{linkForm.formState.errors.sort_order.message}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex justify-end space-x-2">
-                                    <Button type="button" variant="outline" onClick={() => setAddingLinkMode(null)}>
-                                      Cancel
-                                    </Button>
-                                    <Button type="submit">Save Link</Button>
-                                  </div>
-                                </form>
-                              </div>
-                            ) : (
-                              <div className="p-4 border-t">
-                                <Button 
-                                  variant="outline" 
-                                  className="w-full" 
-                                  onClick={() => handleAddLink(group.id)}
-                                >
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  Add Link
-                                </Button>
-                              </div>
-                            )}
-                          </div>
+                          {/* Links Table */}
+                          {group.links.length === 0 ? (
+                            <div className="p-4 text-center text-gray-500">No links in this group</div>
+                          ) : (
+                            <DndContext
+                              sensors={sensors}
+                              collisionDetection={closestCenter}
+                              onDragEnd={(event) => handleLinkDragEnd(event, group.id)}
+                            >
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-10"></TableHead>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>URL</TableHead>
+                                    <TableHead>Sort Order</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  <SortableContext
+                                    items={group.links.map(link => link.id.toString())}
+                                    strategy={verticalListSortingStrategy}
+                                  >
+                                    {group.links.map(link => (
+                                      <SortableLinkItem
+                                        key={link.id}
+                                        link={link}
+                                        onEdit={handleEditLink}
+                                        onDelete={handleDeleteLink}
+                                      />
+                                    ))}
+                                  </SortableContext>
+                                </TableBody>
+                              </Table>
+                            </DndContext>
+                          )}
                         </CardContent>
                       </Card>
                     ))
