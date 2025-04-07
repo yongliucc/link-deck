@@ -64,11 +64,11 @@ const Home: React.FC = () => {
         ) : linkGroups.length === 0 ? (
           <div className="text-center py-8 text-gray-500">No links available.</div>
         ) : (
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-2">
             {linkGroups
               .sort((a, b) => a.sort_order - b.sort_order)
               .map(group => (
-                <div className="mb-5 w-90" key={group.id} id={`group-${group.id}`}>
+                <div className="mb-5 w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.33%-0.5rem)]" key={group.id} id={`group-${group.id}`}>
                   <div className="text-base leading-relaxed text-red-800 pl-1">{group.name}</div>
                   <div className="flex flex-wrap overflow-hidden z-10">
                     {(group.links || [])
@@ -76,7 +76,7 @@ const Home: React.FC = () => {
                       .map(link => (
                         <div className="w-28 m-0.5" key={link.id}>
                           <a 
-                            className="block bg-black/35 text-white text-xs text-center py-1 px-0 leading-9 rounded transition-all duration-200 hover:bg-black/45 hover:text-sm hover:font-bold"
+                            className="block bg-black/35 text-white text-xs text-center py-1 px-0 leading-9 rounded transition-all duration-200 hover:bg-black/45 hover:font-bold"
                             href={link.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
