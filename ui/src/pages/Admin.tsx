@@ -516,6 +516,8 @@ const Admin: React.FC = () => {
       if (groupIndex === -1) return groups;
       
       const group = groups[groupIndex];
+      if (!group) return groups; // Add null check for group
+      
       const links = [...group.links];
       
       const oldIndex = links.findIndex(link => link.id.toString() === active.id);
@@ -544,10 +546,11 @@ const Admin: React.FC = () => {
       });
       
       const updatedGroups = [...groups];
+      // Use type assertion to ensure all required properties are present
       updatedGroups[groupIndex] = {
         ...group,
         links: updatedLinks,
-      };
+      } as LinkGroup;
       
       return updatedGroups;
     });
