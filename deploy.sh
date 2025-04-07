@@ -12,7 +12,7 @@ echo "Starting deployment process..."
 
 # Step 1: Build the application
 echo "Building application..."
-# bash build.sh
+bash build.sh
 
 
 # stop any running instance of the application
@@ -32,4 +32,4 @@ cp -r ./ui/dist $UI_ROOT/
 
 cd $APP_ROOT
 
-$APP_ROOT/$BINARY_NAME --config $APP_ROOT/config.json
+nohup $APP_ROOT/$BINARY_NAME --config $APP_ROOT/config.json > /dev/null 2>&1 &
