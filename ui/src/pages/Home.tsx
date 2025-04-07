@@ -1,9 +1,8 @@
-import { ExternalLink, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { getLinkGroups, LinkGroup } from '@/lib/api';
 
@@ -65,36 +64,29 @@ const Home: React.FC = () => {
         ) : linkGroups.length === 0 ? (
           <div className="text-center py-8 text-gray-500">No links available.</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex flex-wrap gap-4">
             {linkGroups
               .sort((a, b) => a.sort_order - b.sort_order)
               .map(group => (
-                <Card key={group.id} className="overflow-hidden">
-                  <CardHeader className="bg-gray-50">
-                    <CardTitle>{group.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <ul className="divide-y">
-                      {(group.links || [])
-                        .sort((a, b) => a.sort_order - b.sort_order)
-                        .map(link => (
-                          <li key={link.id} className="p-4 hover:bg-gray-50">
-                            <a 
-                              href={link.url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="flex items-center justify-between text-blue-600 hover:text-blue-800"
-                            >
-                              <div className="flex items-center">
-                                <span>{link.name}</span>
-                              </div>
-                              <ExternalLink className="h-4 w-4 ml-2" />
-                            </a>
-                          </li>
-                        ))}
-                    </ul>
-                  </CardContent>
-                </Card>
+                <div className="mb-5 w-90" key={group.id} id={`group-${group.id}`}>
+                  <div className="text-base leading-relaxed text-red-800 pl-1">{group.name}</div>
+                  <div className="flex flex-wrap overflow-hidden z-10">
+                    {(group.links || [])
+                      .sort((a, b) => a.sort_order - b.sort_order)
+                      .map(link => (
+                        <div className="w-28 m-0.5" key={link.id}>
+                          <a 
+                            className="block bg-black/35 text-white text-xs text-center py-1 px-0 leading-9 rounded transition-all duration-200 hover:bg-black/45 hover:text-sm hover:font-bold"
+                            href={link.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                          >
+                            {link.name}
+                          </a>
+                        </div>
+                      ))}
+                  </div>
+                </div>
               ))}
           </div>
         )}
