@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Pencil, Trash2 } from 'lucide-react';
+import { GripVertical, Pencil, Trash2, ExternalLink } from 'lucide-react';
 import React from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,15 @@ interface SortableGroupItemProps {
   group: LinkGroup;
   onEdit: (group: LinkGroup) => void;
   onDelete: (id: number) => void;
+  onViewLinks?: (groupId: number) => void; 
 }
 
-const SortableGroupItem: React.FC<SortableGroupItemProps> = ({ group, onEdit, onDelete }) => {
+const SortableGroupItem: React.FC<SortableGroupItemProps> = ({ 
+  group, 
+  onEdit, 
+  onDelete,
+  onViewLinks 
+}) => {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: group.id.toString(),
   });
@@ -30,7 +36,19 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({ group, onEdit, on
           <GripVertical className="h-4 w-4 text-gray-400 group-hover:text-gray-600" />
         </div>
       </TableCell>
-      <TableCell className="font-medium">{group.name}</TableCell>
+      <TableCell className="font-medium">
+        {onViewLinks ? (
+          <button 
+            onClick={() => onViewLinks(group.id)}
+            className="flex items-center text-blue-600 hover:underline"
+          >
+            {group.name}
+            <ExternalLink className="ml-1 h-3 w-3" />
+          </button>
+        ) : (
+          group.name
+        )}
+      </TableCell>
       <TableCell>{group.sort_order}</TableCell>
       <TableCell className="text-center">{group.links?.length || 0}</TableCell>
       <TableCell className="text-right">

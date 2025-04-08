@@ -31,6 +31,7 @@ const Admin: React.FC = () => {
   const [currentView, setCurrentView] = useState<AdminView>('linkGroups');
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
 
   // Load link groups
   const loadLinkGroups = async () => {
@@ -62,6 +63,12 @@ const Admin: React.FC = () => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  // Navigation
+  const handleViewGroupLinks = (groupId: number) => {
+    setSelectedGroupId(groupId);
+    setCurrentView('links');
   };
 
   // Group operations
@@ -303,6 +310,7 @@ const Admin: React.FC = () => {
               onUpdateGroup={handleUpdateGroup}
               onDeleteGroup={handleDeleteGroup}
               onReorderGroups={handleReorderGroups}
+              onViewGroupLinks={handleViewGroupLinks}
             />
           )}
 
@@ -315,6 +323,7 @@ const Admin: React.FC = () => {
               onUpdateLink={handleUpdateLink}
               onDeleteLink={handleDeleteLink}
               onReorderLinks={handleReorderLinks}
+              filteredGroupId={selectedGroupId !== null ? selectedGroupId : undefined}
             />
           )}
 

@@ -30,6 +30,7 @@ interface LinkGroupsViewProps {
   onUpdateGroup: (id: number, data: LinkGroupFormValues) => Promise<void>;
   onDeleteGroup: (id: number) => Promise<void>;
   onReorderGroups: (reorderedGroups: LinkGroup[]) => void;
+  onViewGroupLinks?: (groupId: number) => void;
 }
 
 const LinkGroupsView: React.FC<LinkGroupsViewProps> = ({
@@ -38,7 +39,8 @@ const LinkGroupsView: React.FC<LinkGroupsViewProps> = ({
   onAddGroup,
   onUpdateGroup,
   onDeleteGroup,
-  onReorderGroups
+  onReorderGroups,
+  onViewGroupLinks
 }) => {
   const [addingGroupMode, setAddingGroupMode] = useState(false);
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
@@ -171,6 +173,7 @@ const LinkGroupsView: React.FC<LinkGroupsViewProps> = ({
                             group={group}
                             onEdit={handleEditGroup}
                             onDelete={onDeleteGroup}
+                            onViewLinks={onViewGroupLinks}
                           />
                         ))}
                       </SortableContext>

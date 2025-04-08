@@ -14,7 +14,7 @@ import {
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
 import { Plus } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +30,7 @@ interface LinksViewProps {
   onUpdateLink: (linkId: number, groupId: number, data: LinkFormValues) => Promise<void>;
   onDeleteLink: (id: number) => Promise<void>;
   onReorderLinks: (groupId: number, reorderedLinks: LinkType[]) => void;
+  filteredGroupId?: number;
 }
 
 const LinksView: React.FC<LinksViewProps> = ({
@@ -38,10 +39,19 @@ const LinksView: React.FC<LinksViewProps> = ({
   onAddLink,
   onUpdateLink,
   onDeleteLink,
-  onReorderLinks
+  onReorderLinks,
+  filteredGroupId
 }) => {
   const [editingLinkId, setEditingLinkId] = useState<number | null>(null);
   const [addingLinkMode, setAddingLinkMode] = useState<number | null>(null);
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
+
+  // If filteredGroupId is provided, use it as the initial selected group
+  useEffect(() => {
+    if (filteredGroupId) {
+      setSelectedGroupId(filteredGroupId);
+    }
+  }, [filteredGroupId]);
 
   // Setup sensors for drag-n-drop
   const sensors = useSensors(
@@ -128,10 +138,29 @@ const LinksView: React.FC<LinksViewProps> = ({
     onReorderLinks(groupId, updatedLinks);
   };
 
+  // Filter the groups based on the selected group ID
+  const filteredGroups = selectedGroupId 
+    ? linkGroups.filter(group => group.id === selectedGroupId) 
+    : linkGroups;
+
   return (
     <>
       <div className="mb-6">
         <h2 className="text-xl font-semibold">Links</h2>
+        <div className="mt-4 flex items-center">
+          <label htmlFor="group-filter" className="mr-2 text-sm">Filter by Group:</label>
+          <select
+            id="group-filter"
+            value={selectedGroupId || ''}
+            onChange={(e) => setSelectedGroupId(e.target.value ? Number(e.target.value) : null)}
+            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value="">All Groups</option>
+            {linkGroups.map(group => (
+              <option key={group.id} value={group.id}>{group.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {loading ? (
@@ -157,7 +186,7 @@ const LinksView: React.FC<LinksViewProps> = ({
           {linkGroups.length === 0 ? (
             <div className="text-center py-8 text-gray-500">No link groups found. Create a group first!</div>
           ) : (
-            linkGroups.map(group => (
+            filteredGroups.map(group => (
               <Card key={group.id} className="overflow-hidden">
                 <CardHeader className="bg-gray-50 flex flex-row items-center justify-between">
                   <CardTitle>{group.name}</CardTitle>
