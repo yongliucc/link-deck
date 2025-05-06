@@ -31,11 +31,11 @@ WantedBy=multi-user.target"
 
 # Create config directory if it doesn't exist
 echo "Creating config directory..."
-ssh $REMOTE_HOST "mkdir -p /etc/link-deck"
+ssh -p $REMOTE_PORT $REMOTE_HOST "mkdir -p /etc/link-deck"
 
 # Create a default config file if it doesn't exist
 echo "Checking for config file..."
-ssh $REMOTE_HOST "if [ ! -f ${CONFIG_PATH} ]; then
+ssh -p $REMOTE_PORT $REMOTE_HOST "if [ ! -f ${CONFIG_PATH} ]; then
     echo 'Creating default config file...'
     echo '{
         \"server\": {
@@ -58,15 +58,15 @@ fi"
 
 # Create data directory
 echo "Creating data directory..."
-ssh $REMOTE_HOST "mkdir -p ${REMOTE_PATH}/data"
+ssh -p $REMOTE_PORT $REMOTE_HOST "mkdir -p ${REMOTE_PATH}/data"
 
 # Create service file
 echo "Creating systemd service file..."
-echo "$SERVICE_CONTENT" | ssh $REMOTE_HOST "cat > /etc/systemd/system/${SERVICE_NAME}.service"
+echo "$SERVICE_CONTENT" | ssh -p $REMOTE_PORT $REMOTE_HOST "cat > /etc/systemd/system/${SERVICE_NAME}.service"
 
 # Reload systemd, enable and start service
 echo "Configuring systemd service..."
-ssh $REMOTE_HOST "systemctl daemon-reload && systemctl enable ${SERVICE_NAME}.service"
+ssh -p $REMOTE_PORT $REMOTE_HOST "systemctl daemon-reload && systemctl enable ${SERVICE_NAME}.service"
 
 echo "Service setup completed successfully!"
 echo "You can now use: systemctl start|stop|restart|status ${SERVICE_NAME}"
